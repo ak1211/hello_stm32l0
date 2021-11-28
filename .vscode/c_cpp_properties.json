@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/Core/Inc",
+                "${workspaceFolder}/Drivers/STM32L0xx_HAL_Driver/Inc",
+                "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32L0xx/Include"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
