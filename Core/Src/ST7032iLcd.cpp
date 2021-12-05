@@ -19,7 +19,7 @@ inline void i2c_lcd_wait_a_moment() {
 }
 // clang-format on
 
-bool ST7032iLcd::init(uint8_t contrast) {
+std::optional<int8_t> ST7032iLcd::init(uint8_t contrast) {
   sendCommands({
       0b00111000, // function set
       0b00111001, // function set
@@ -37,7 +37,7 @@ bool ST7032iLcd::init(uint8_t contrast) {
   });
   HAL_Delay(2);
 
-  return true;
+  return 0;
 }
 
 void ST7032iLcd::setContrast(uint8_t contrast) {
@@ -49,23 +49,28 @@ void ST7032iLcd::setContrast(uint8_t contrast) {
   });
 }
 
-inline bool Top4bitHigh(uint8_t x) { return (x & 0b11111000) == 0b11110000; }
-inline bool Top3bitHigh(uint8_t x) { return (x & 0b11110000) == 0b11100000; }
-inline bool Top2bitHigh(uint8_t x) { return (x & 0b11100000) == 0b11000000; }
+static inline bool Top4bitHigh(uint8_t x) {
+  return (x & 0b11111000) == 0b11110000;
+}
+static inline bool Top3bitHigh(uint8_t x) {
+  return (x & 0b11110000) == 0b11100000;
+}
+static inline bool Top2bitHigh(uint8_t x) {
+  return (x & 0b11100000) == 0b11000000;
+}
 constexpr static const uint16_t CodePointHankakuKatakanaBegin = 0xff61;
 constexpr static const uint16_t CodePointHankakuKatakanaEnd = 0xff9f;
-inline bool isHankakuKatakana(uint16_t x) {
+static inline bool isHankakuKatakana(uint16_t x) {
   return (CodePointHankakuKatakanaBegin <= x &&
           x <= CodePointHankakuKatakanaEnd);
 }
 
 // utf-8 to ascii & sjis kana
 void ST7032iLcd::putString(const std::string &s) {
-  uint8_t buff[LCD_NUM_OF_ROW_CHARACTERS];
+  std::array<uint8_t, LCD_NUM_OF_ROW_CHARACTERS> buff;
   std::size_t buff_idx = 0;
 
-  for (std::size_t idx = 0;
-       buff_idx < LCD_NUM_OF_ROW_CHARACTERS && idx < s.size();) {
+  for (std::size_t idx = 0; buff_idx < buff.size() && idx < s.size();) {
     if (Top4bitHigh(s[idx])) {
       // utf8 4-byte encoded character
       // map to '?'
@@ -96,7 +101,7 @@ void ST7032iLcd::putString(const std::string &s) {
       idx += 1;
     }
   }
-  master_transmit(i2c, i2c_address, I2C_LCD_CBYTE_DATA, buff_idx, buff);
+  master_transmit(i2c, i2c_address, I2C_LCD_CBYTE_DATA, buff_idx, buff.data());
 }
 
 struct Icon {

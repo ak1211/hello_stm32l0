@@ -4,7 +4,9 @@
 		"string": "cpp",
 		"string_view": "cpp",
 		"ranges": "cpp",
-		"tuple": "cpp"
+		"tuple": "cpp",
+		"cerrno": "cpp",
+		"cstdint": "cpp"
 	},
 	"C_Cpp.errorSquiggles": "Disabled"
 }
