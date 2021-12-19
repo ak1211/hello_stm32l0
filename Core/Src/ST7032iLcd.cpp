@@ -19,7 +19,7 @@ inline void i2c_lcd_wait_a_moment() {
 }
 // clang-format on
 
-std::optional<int8_t> ST7032iLcd::init(uint8_t contrast) {
+bool ST7032iLcd::init(uint8_t contrast) {
   sendCommands({
       0b00111000, // function set
       0b00111001, // function set
@@ -37,7 +37,7 @@ std::optional<int8_t> ST7032iLcd::init(uint8_t contrast) {
   });
   HAL_Delay(2);
 
-  return 0;
+  return true;
 }
 
 void ST7032iLcd::setContrast(uint8_t contrast) {

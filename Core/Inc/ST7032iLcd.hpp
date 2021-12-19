@@ -14,7 +14,6 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -24,7 +23,7 @@ public:
   ST7032iLcd(I2C_HandleTypeDef &h, uint8_t addr = 0x3e)
       : i2c(h), i2c_address(addr) {}
   //
-  std::optional<int8_t> init(uint8_t contrast = 0b101000);
+  bool init(uint8_t contrast = 0b100100);
   void setContrast(uint8_t contrast);
   //
   template <std::size_t N>
