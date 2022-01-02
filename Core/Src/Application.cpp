@@ -103,7 +103,7 @@ static inline void excitingCoil(HiACBDLoACBD hiloACBD) {
 }
 
 // short brake = turn ON all lower side switch.
-static inline void shortBrake() { excitingCoil(0b11110000); }
+static inline void shortBrake() { excitingCoil(0b00001111); }
 
 //
 enum class Rotation : int8_t { CW = -1, CCW = 1 };
