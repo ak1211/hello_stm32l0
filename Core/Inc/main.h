@@ -58,6 +58,22 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define LowA_Pin GPIO_PIN_0
+#define LowA_GPIO_Port GPIOA
+#define LowC_Pin GPIO_PIN_1
+#define LowC_GPIO_Port GPIOA
+#define LowB_Pin GPIO_PIN_2
+#define LowB_GPIO_Port GPIOA
+#define LowD_Pin GPIO_PIN_3
+#define LowD_GPIO_Port GPIOA
+#define HighA_Pin GPIO_PIN_4
+#define HighA_GPIO_Port GPIOA
+#define HighC_Pin GPIO_PIN_5
+#define HighC_GPIO_Port GPIOA
+#define HighB_Pin GPIO_PIN_6
+#define HighB_GPIO_Port GPIOA
+#define HighD_Pin GPIO_PIN_7
+#define HighD_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

@@ -17,100 +17,96 @@ extern TIM_HandleTypeDef htim2;
 
 static ST7032iLcd i2c_lcd(hi2c1);
 
+// H-brigde pin class
+template <GPIO_TypeDef *PORT(), uint32_t PIN> class HbridgePin {
+public:
+  static GPIO_PinState state() {
+    if (((PORT()->ODR) & PIN) == 0) {
+      return GPIO_PIN_RESET;
+    } else {
+      return GPIO_PIN_SET;
+    }
+  }
+  static void turnOn() { HAL_GPIO_WritePin(PORT(), PIN, GPIO_PIN_SET); }
+  static void turnOff() { HAL_GPIO_WritePin(PORT(), PIN, GPIO_PIN_RESET); }
+};
+
+// two H-brigdes port declaration
+constexpr GPIO_TypeDef *HbHighA_GPIO_Port() { return HighA_GPIO_Port; }
+constexpr GPIO_TypeDef *HbHighC_GPIO_Port() { return HighC_GPIO_Port; }
+constexpr GPIO_TypeDef *HbHighB_GPIO_Port() { return HighB_GPIO_Port; }
+constexpr GPIO_TypeDef *HbHighD_GPIO_Port() { return HighD_GPIO_Port; }
+constexpr GPIO_TypeDef *HbLowA_GPIO_Port() { return LowA_GPIO_Port; }
+constexpr GPIO_TypeDef *HbLowC_GPIO_Port() { return LowC_GPIO_Port; }
+constexpr GPIO_TypeDef *HbLowB_GPIO_Port() { return LowB_GPIO_Port; }
+constexpr GPIO_TypeDef *HbLowD_GPIO_Port() { return LowD_GPIO_Port; }
+
+// two H-brigdes pins declaration
+using HbPinHighA = HbridgePin<HbHighA_GPIO_Port, HighA_Pin>;
+using HbPinHighC = HbridgePin<HbHighC_GPIO_Port, HighC_Pin>;
+using HbPinHighB = HbridgePin<HbHighB_GPIO_Port, HighB_Pin>;
+using HbPinHighD = HbridgePin<HbHighD_GPIO_Port, HighD_Pin>;
+using HbPinLowA = HbridgePin<HbLowA_GPIO_Port, LowA_Pin>;
+using HbPinLowC = HbridgePin<HbLowC_GPIO_Port, LowC_Pin>;
+using HbPinLowB = HbridgePin<HbLowB_GPIO_Port, LowB_Pin>;
+using HbPinLowD = HbridgePin<HbLowD_GPIO_Port, LowD_Pin>;
+
 using ExcitingACBD = uint8_t;
-constexpr const ExcitingACBD ExA = 0b1000;
-constexpr const ExcitingACBD ExC = 0b0100;
-constexpr const ExcitingACBD ExB = 0b0010;
-constexpr const ExcitingACBD ExD = 0b0001;
+constexpr ExcitingACBD ExA = 0b1000;
+constexpr ExcitingACBD ExC = 0b0100;
+constexpr ExcitingACBD ExB = 0b0010;
+constexpr ExcitingACBD ExD = 0b0001;
 
 using HiACBDLoACBD = uint8_t;
-
 static inline HiACBDLoACBD fromExcitingACBD(ExcitingACBD acbd) {
   return (acbd & 0xf) << 4 | (acbd & 0xf);
 }
-
 //
 static inline void excitingCoil(HiACBDLoACBD hiloACBD) {
-  uint32_t odr = GPIOA->ODR;
-  if ((odr & 0xff) != hiloACBD) {
-    GPIOA->BSRR = (~hiloACBD & 0xff) << 16;
-    // clang-format off
-    asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
-    asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
-    // 10
-    asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
-    asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
-    // 20
-    // clang-format on
-    GPIOA->BSRR = hiloACBD & 0xff;
+  {
+    ExcitingACBD hi =
+        (HbPinHighA::state() ? ExA : 0) | (HbPinHighC::state() ? ExC : 0) |
+        (HbPinHighB::state() ? ExB : 0) | (HbPinHighD::state() ? ExD : 0);
+    ExcitingACBD lo =
+        (HbPinLowA::state() ? ExA : 0) | (HbPinLowC::state() ? ExC : 0) |
+        (HbPinLowB::state() ? ExB : 0) | (HbPinLowD::state() ? ExD : 0);
+    if (((hi << 4) | lo) == hiloACBD) {
+      return;
+    }
   }
+  // clang-format off
+  //
+  if (!(hiloACBD & (ExA << 4))) { HbPinHighA::turnOff(); }
+  if (!(hiloACBD & (ExC << 4))) { HbPinHighC::turnOff(); }
+  if (!(hiloACBD & (ExB << 4))) { HbPinHighB::turnOff(); }
+  if (!(hiloACBD & (ExD << 4))) { HbPinHighD::turnOff(); }
+  if (!(hiloACBD & ExA)) { HbPinLowA::turnOff(); }
+  if (!(hiloACBD & ExC)) { HbPinLowC::turnOff(); }
+  if (!(hiloACBD & ExB)) { HbPinLowB::turnOff(); }
+  if (!(hiloACBD & ExD)) { HbPinLowD::turnOff(); }
+  asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
+  asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
+  // 10
+  asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
+  asm("NOP");asm("NOP");asm("NOP");asm("NOP");asm("NOP");
+  // 20
+  //
+  if (hiloACBD & (ExA << 4)) { HbPinHighA::turnOn(); }
+  if (hiloACBD & (ExC << 4)) { HbPinHighC::turnOn(); }
+  if (hiloACBD & (ExB << 4)) { HbPinHighB::turnOn(); }
+  if (hiloACBD & (ExD << 4)) { HbPinHighD::turnOn(); }
+  if (hiloACBD & ExA) { HbPinLowA::turnOn(); }
+  if (hiloACBD & ExC) { HbPinLowC::turnOn(); }
+  if (hiloACBD & ExB) { HbPinLowB::turnOn(); }
+  if (hiloACBD & ExD) { HbPinLowD::turnOn(); }
+  // clang-format on
 }
-
-// turn off all transistor
-static inline void turnOffAll() { GPIOA->BSRR = 0xff << 16; }
 
 // short brake = turn ON all lower side switch.
-static inline void shortBrake() { excitingCoil(0b00001111); }
+static inline void shortBrake() { excitingCoil(0b11110000); }
 
-// Low A (PA0)
-static inline void turnOnLowA() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
-}
-static inline void turnOffLowA() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
-}
-// Low C (PA1)
-static inline void turnOnLowC() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
-}
-static inline void turnOffLowC() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
-}
-// Low B (PA2)
-static inline void turnOnLowB() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_SET);
-}
-static inline void turnOffLowB() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET);
-}
-// Low D (PA3)
-static inline void turnOnLowD() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, GPIO_PIN_SET);
-}
-static inline void turnOffLowD() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, GPIO_PIN_RESET);
-}
-
-// High A (PA4)
-static inline void turnOnHighA() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-}
-static inline void turnOffHighA() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-}
-// High C (PA5)
-static inline void turnOnHighC() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-}
-static inline void turnOffHighC() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-}
-// High B (PA6)
-static inline void turnOnHighB() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
-}
-static inline void turnOffHighB() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
-}
-// High D (PA7)
-static inline void turnOnHighD() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);
-}
-static inline void turnOffHighD() {
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_RESET);
-}
-
-enum class Rotation : int8_t { CW = 1, CCW = -1 };
+//
+enum class Rotation : int8_t { CW = -1, CCW = 1 };
 
 // Wave drive (one phase on)
 static inline int32_t waveDrive(int32_t steps, Rotation r) {
@@ -182,12 +178,20 @@ constexpr static const int32_t RightAngle = 400 / 2;
 
 static void showPosition() {
   std::string buff(50, ' ');
-  switch (rotation) {
-  case Rotation::CW:
-    std::snprintf(buff.data(), buff.size(), "CW %+5ld pulses", stepCounter);
+  int8_t sign = (stepCounter == 0) ? 0 : ((stepCounter < 0) ? (-1) : 1);
+  switch (sign) {
+  case 0:
+    std::snprintf(buff.data(), buff.size(), u8" HOME position. ");
     break;
-  case Rotation::CCW:
-    std::snprintf(buff.data(), buff.size(), "CCW %+5ld pulses", stepCounter);
+  case static_cast<int8_t>(Rotation::CW):
+    std::snprintf(buff.data(), buff.size(), u8"CW %5ld pulses",
+                  std::abs(stepCounter));
+    break;
+  case static_cast<int8_t>(Rotation::CCW):
+    std::snprintf(buff.data(), buff.size(), u8"CCW %5ld pulses",
+                  std::abs(stepCounter));
+    break;
+  default:
     break;
   }
   i2c_lcd.setDdramAddress(0x40);
@@ -196,12 +200,6 @@ static void showPosition() {
 
 typedef void (*Procedure)();
 
-static void procHomePosition() {
-  i2c_lcd.setDdramAddress(0x40);
-  i2c_lcd.puts(u8" HOME position. ");
-  HAL_Delay(1000);
-  HAL_TIM_Base_Start_IT(&htim2);
-}
 static void procStopPosition() {
   showPosition();
   HAL_Delay(1000);
@@ -217,7 +215,6 @@ static void procReturnPosition() {
 static Procedure getProcedure(int32_t counter) {
   switch (std::abs(counter)) {
   case 0 * RightAngle: // home position
-    return procHomePosition;
   case 1 * RightAngle: // 90
     return procStopPosition;
   case 2 * RightAngle: // 180
